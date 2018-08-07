@@ -41,18 +41,18 @@ if (!empty($_GET)){
 }
 
 
-$sql = "SELECT * FROM tasks";?>
-<?php
+$sql = "SELECT * FROM tasks";
+
 if (!empty($_GET)) {
 	if ($_GET['action']=='edit') { ?>
 			<form action="" method="POST">
-		    <input type="text" name="edit" placeholder="Введите изменение" />
-		    <input type="submit" value="Сохранить" />
+			    <input type="text" name="edit" placeholder="Введите изменение" />
+			    <input type="submit" value="Сохранить" />
 			</form>	
 <?php } else {?>
 			<form action="" method="POST">
-		    <input type="text" name="description" placeholder="Описание задачи" />
-		    <input type="submit" value="Добавить" />
+			    <input type="text" name="description" placeholder="Описание задачи" />
+			    <input type="submit" value="Добавить" />
 			</form>
 <?php } ?>
 
