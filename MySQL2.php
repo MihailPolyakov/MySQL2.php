@@ -23,26 +23,19 @@ $users = "SELECT * FROM user";
 $sql = "SELECT * FROM task";
 $join = 'SELECT task.id, task.description, task.date_added, task.is_done, task.user_id, task.assigned_user_id, user.login, user.id as id_users from task JOIN user on task.user_id = user.id';
 
-//удялаяем сессию при выходе с приложения и возвращаемся на момент авторизации
-if (!empty($_GET['session'])) {
-	session_destroy();
-	?>
-	<a href="enterforsql.php">Войти на сайт</a>
-	<?php exit;
-}
-
-
-if (!$_SESSION['login']) {?>
-	<a href="enterforsql.php">Войти на сайт</a>
+//проверяем на наличия сессии или удялаяем сессию при выходе с приложения и возвращаемся на момент авторизации
+if (!$_SESSION['login'] || !empty($_GET['session'])) {
+	session_destroy();?>
+	<a href="autorisation2.php">Войти на сайт</a>
 <?php } else {
-//Создание переменной $_SESSION['id']
-foreach ($pdo->query($users) as $value) {
-	if ($value['login'] == $_SESSION['login']) {
-		$_SESSION['id'] = $value['id'];
-		break;
+	//Создание переменной $_SESSION['id']
+	foreach ($pdo->query($users) as $value) {
+		if ($value['login'] == $_SESSION['login']) {
+			$_SESSION['id'] = $value['id'];
+			break;
+		}
 	}
-}
-echo "Добро пожаловать" . ' ' . $_SESSION['login'];
+	echo "Добро пожаловать" . ' ' . $_SESSION['login'];
  if (!empty($_GET['edit'])) {
  	$edit=$_GET['edit'];
  	$id=(int)$_GET['id'];
