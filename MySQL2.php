@@ -21,7 +21,6 @@ session_start();
 $pdo = new PDO("mysql:host=localhost;dbname=todo", "Miha", "Qwerty123");
 $users = "SELECT * FROM user";
 $sql = "SELECT * FROM task";
-$join = 'SELECT task.id, task.description, task.date_added, task.is_done, task.user_id, task.assigned_user_id, user.login, user.id as id_users from task JOIN user on task.user_id = user.id';
 
 //проверяем на наличия сессии или удялаяем сессию при выходе с приложения и возвращаемся на момент авторизации
 if (!$_SESSION['login'] || !empty($_GET['session'])) {
@@ -31,10 +30,16 @@ if (!$_SESSION['login'] || !empty($_GET['session'])) {
 	//Создание переменной $_SESSION['id']
 	foreach ($pdo->query($users) as $value) {
 		if ($value['login'] == $_SESSION['login']) {
-			$_SESSION['id'] = $value['id'];
+			$userid = $value['id'];
 			break;
 		}
 	}
+	//Делаем запрос на присоединение к БД task, где автор задачи ID-пользователя
+	$join = "SELECT task.id, task.description, task.date_added, task.is_done, task.user_id, task.assigned_user_id, user.login, user.id as id_users from task JOIN user on task.user_id = user.id WHERE task.user_id = $userid";
+
+	//Делаем запрос на присоединение к БД task, где ответственный задачи ID-пользователя и автор не ID пользователя
+	$secondjoin = "SELECT task.id, task.description, task.date_added, task.is_done, task.user_id, task.assigned_user_id, user.login, user.id as id_users from task JOIN user on task.user_id = user.id WHERE task.assigned_user_id = $userid and task.user_id != $userid";
+
 	echo "Добро пожаловать" . ' ' . $_SESSION['login'];
  if (!empty($_GET['edit'])) {
  	$edit=$_GET['edit'];
@@ -107,9 +112,7 @@ if (!empty($_GET['action']=='edit')) {?>
 		<td>Ответсвенный</td>
 		<td>Закрепить задачу за пользователем</td>
 	</tr>
-	<?php foreach ($pdo->query($join) as $value) {
-		//Делаем проверку для какого пользователя нам отображать задачи созданные им
-		if ($_SESSION['id'] == $value['user_id']) {?>
+	<?php foreach ($pdo->query($join) as $value) {?>
 			<tr>
 				<td><?php echo $value['description'];?></td>
 				<td><?php echo $value['date_added'];?></td>
@@ -143,8 +146,6 @@ if (!empty($_GET['action']=='edit')) {?>
 					</form>
 				</td>
 			</tr>
-	
-		<?php } ?>
 
     <?php }?>
 </table><br>
@@ -158,29 +159,26 @@ if (!empty($_GET['action']=='edit')) {?>
 		<td>Автор</td>
 		<td>Ответсвенный</td>
 	</tr>
-	<?php foreach ($pdo->query($join) as $value) {
-		//Делаем проверку какие задачи ереложили данному пользователю
-			if ($_SESSION['id'] == $value['assigned_user_id'] && $_SESSION['id'] != $value['user_id']) {?>
-			<tr>
-				<td><?php echo $value['description'];?></td>
-				<td><?php echo $value['date_added'];?></td>
-				<td><?php echo $value['is_done'];?></td>
-				<td>
-			        <a href='?id=<?php echo $value['id']?>&action=done'>Выполнить</a>
-				</td>
-					<td><?php echo $value['login'];?></td>
-				    
-				    <?php
-					//Находим под каким пользователем закреплена задача				
-					foreach ($pdo->query($users) as $id_users) {
-						if ($id_users['id'] == $value['assigned_user_id']) {?>
-							<td><?php echo $id_users['login'];?></td>
-						<?php break;
-						}	
-					}?>
-			</tr>			
-		<?php } 
-        }?>
+	<?php foreach ($pdo->query($secondjoin) as $value) {?>
+		<tr>
+			<td><?php echo $value['description'];?></td>
+			<td><?php echo $value['date_added'];?></td>
+			<td><?php echo $value['is_done'];?></td>
+			<td>
+		        <a href='?id=<?php echo $value['id']?>&action=done'>Выполнить</a>
+			</td>
+				<td><?php echo $value['login'];?></td>
+			    
+			    <?php
+				//Находим под каким пользователем закреплена задача				
+				foreach ($pdo->query($users) as $id_users) {
+					if ($id_users['id'] == $value['assigned_user_id']) {?>
+						<td><?php echo $id_users['login'];?></td>
+					<?php break;
+					}	
+				}?>
+		</tr>			
+       <?php }?>
 </table>		
 
 <a href="?session=delete">Выйти</a>
