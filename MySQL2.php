@@ -19,8 +19,7 @@
 <?php
 session_start();
 $pdo = new PDO("mysql:host=localhost;dbname=todo", "Miha", "Qwerty123");
-$users = "SELECT * FROM user";
-$sql = "SELECT * FROM task";
+$users = "SELECT id, login FROM user";
 
 //проверяем на наличия сессии или удялаяем сессию при выходе с приложения и возвращаемся на момент авторизации
 if (!$_SESSION['login'] || !empty($_GET['session'])) {
@@ -35,10 +34,10 @@ if (!$_SESSION['login'] || !empty($_GET['session'])) {
 		}
 	}
 	//Делаем запрос на присоединение к БД task, где автор задачи ID-пользователя
-	$join = "SELECT task.id, task.description, task.date_added, task.is_done, task.user_id, task.assigned_user_id, user.login, user.id as id_users from task JOIN user on task.user_id = user.id WHERE task.user_id = $userid";
+	$join = "SELECT task.id, task.description, task.date_added, task.is_done, task.user_id, task.assigned_user_id, user.login, user.id as id_users from task JOIN user on task.user_id = user.id WHERE task.user_id = $userid ORDER BY task.date_added";
 
 	//Делаем запрос на присоединение к БД task, где ответственный задачи ID-пользователя и автор не ID пользователя
-	$secondjoin = "SELECT task.id, task.description, task.date_added, task.is_done, task.user_id, task.assigned_user_id, user.login, user.id as id_users from task JOIN user on task.user_id = user.id WHERE task.assigned_user_id = $userid and task.user_id != $userid";
+	$secondjoin = "SELECT task.id, task.description, task.date_added, task.is_done, task.user_id, task.assigned_user_id, user.login, user.id as id_users from task JOIN user on task.user_id = user.id WHERE task.assigned_user_id = $userid and task.user_id != $userid ORDER BY task.date_added";
 
 	echo "Добро пожаловать" . ' ' . $_SESSION['login'];
  if (!empty($_GET['edit'])) {
@@ -50,13 +49,13 @@ if (!$_SESSION['login'] || !empty($_GET['session'])) {
 
 
  if (!empty($_POST['description'])){
-	$value='В процессе';
-	$you = 'Вы';
-	$stmt = $pdo->prepare("INSERT INTO task (description, is_done, user_id, assigned_user_id) VALUES (:description, :is_done, :user_id, :assigned_user_id)");
+	$value = 'В процессе';
+	$stmt = $pdo->prepare("INSERT INTO task (description, date_added, is_done, user_id, assigned_user_id) VALUES (:description, :date_added, :is_done, :user_id, :assigned_user_id)");
 	$stmt->bindParam(':description', $_POST['description']);
+	$stmt->bindParam(':date_added', $_POST['Date']);
 	$stmt->bindParam(':is_done', $value);
-	$stmt->bindParam(':user_id', $_SESSION['id']);
-	$stmt->bindParam(':assigned_user_id', $_SESSION['id']);
+	$stmt->bindParam(':user_id', $userid);
+	$stmt->bindParam(':assigned_user_id', $userid);
 	$stmt->execute();
  }
 
@@ -83,6 +82,10 @@ if (!empty($_GET['action'])){
 		$id=(int)$_GET['id'];
 		$done=$pdo->prepare("UPDATE task SET is_done='Выполнено' WHERE id=$id");
 		$done->execute();
+	} elseif ($_GET['action'] == 'didnotdo') {
+		$id=(int)$_GET['id'];
+		$done=$pdo->prepare("UPDATE task SET is_done='Не выполнено' WHERE id=$id");
+		$done->execute();
 	}
 	
 }
@@ -97,15 +100,30 @@ if (!empty($_GET['action']=='edit')) {?>
 <?php } else {?>
 	<form action="" method="POST">
 	    <input type="text" name="description" placeholder="Описание задачи">
+	    <input type="date" name="Date">
 	    <input type="submit" value="Добавить">
 	</form>
 <?php } ?>
+
+<!-- количество дел на сегодня-->
+<table>
+	<tr>
+		<td>Количество дел</td>
+	</tr>
+	<?php 
+		$count = "SELECT count(*) from task t WHERE t.user_id = $userid OR t.assigned_user_id = $userid";
+		foreach ($pdo->query($count) as $value) {?>
+			<tr>
+				<td><?php echo $value[0];?></td>
+			</tr>			
+	    <?php }?>
+</table><br>	
 
 <!-- Задачи пользователя где он является автором-->
 <table >
 	<tr>
 		<td>Задача</td>
-		<td>Дата добавления</td>
+		<td>До какого выполнить</td>
 		<td>Статус</td>
 		<td></td>
 		<td>Автор</td>
@@ -119,7 +137,9 @@ if (!empty($_GET['action']=='edit')) {?>
 				<td><?php echo $value['is_done'];?></td>
 				<td>
 					<a href='?id=<?php echo $value['id']?>&action=edit'>Изменить</a>
-			        <a href='?id=<?php echo $value['id']?>&action=done'>Выполнить</a>
+			        <a href='?id=<?php echo $value['id']?>&action=done'>Выполнено</a>
+			        <span>/<span>
+			        <a href='?id=<?php echo $value['id']?>&action=didnotdo'>Не выполнено</a>	
 			        <a href='?id=<?php echo $value['id']?>&action=delete'>Удалить</a>
 				</td>
 					<td><?php echo $value['login'];?></td>
@@ -142,18 +162,19 @@ if (!empty($_GET['action']=='edit')) {?>
 								<option><?php echo($value['login'])?></option>
 							<?php } ?>
 						</select>
-						<input type="submit" value="Выбрать из списка">
+						<input type="submit" value="Делегировать">
 					</form>
 				</td>
 			</tr>
 
     <?php }?>
 </table><br>
+
 <!-- Задачи переложенные от других пользователей-->
 <table >
 	<tr>
 		<td>Задача</td>
-		<td>Дата добавления</td>
+		<td>До какого выполнить</td>
 		<td>Статус</td>
 		<td></td>
 		<td>Автор</td>
