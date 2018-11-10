@@ -34,7 +34,7 @@ if (!$_SESSION['login'] || !empty($_GET['session'])) {
 		}
 	}
 	//Делаем запрос на присоединение к БД task, где автор задачи ID-пользователя
-	$join = "SELECT task.id, task.description, task.date_added, task.is_done, task.user_id, task.assigned_user_id, user.login, user.id as id_users from task JOIN user on task.user_id = user.id WHERE task.user_id = $userid ORDER BY task.date_added";
+	$join = "SELECT task.id, task.description, task.date_added, task.is_done, task.user_id, task.assigned_user_id, user.login, user.login as assigned_login, user.id as id_users from task JOIN user on task.user_id = user.id WHERE task.user_id = $userid ORDER BY task.date_added";
 
 	//Делаем запрос на присоединение к БД task, где ответственный задачи ID-пользователя и автор не ID пользователя
 	$secondjoin = "SELECT task.id, task.description, task.date_added, task.is_done, task.user_id, task.assigned_user_id, user.login, user.id as id_users from task JOIN user on task.user_id = user.id WHERE task.assigned_user_id = $userid and task.user_id != $userid ORDER BY task.date_added";
